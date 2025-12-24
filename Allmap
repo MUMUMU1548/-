@@ -2,8 +2,10 @@
 local Players = game:GetService("Players")
 local CoreGui = game:GetService("CoreGui")
 local UserInputService = game:GetService("UserInputService")
+local Players = game:GetService("Players")
+local RunService = game:GetService("RunService")
+local player = Players.LocalPlayer
 
-local LocalPlayer = Players.LocalPlayer
 
 local WindUI = loadstring(game:HttpGet(
     "https://github.com/Footagesus/WindUI/releases/latest/download/main.lua"
@@ -81,170 +83,81 @@ UserInputService.InputBegan:Connect(function(input, gp)
 end)
 
 
+-- STATE
+local enabled = false
+local speedLevel = 1
+local speedValue = 60
+local loopConnection = nil
 
--- ===== WAIT FOR WINDUI READY =====
-repeat task.wait() until Window.UI
-task.wait(0.5)
-
--- =========================
--- ERROR HUB MOVEMENT SYSTEM
--- =========================
-
-local Players = game:GetService("Players")
-local RunService = game:GetService("RunService")
-local UIS = game:GetService("UserInputService")
-local player = Players.LocalPlayer
-
-local humanoid, root
-
-local function refreshChar()
-    local char = player.Character or player.CharacterAdded:Wait()
-    humanoid = char:WaitForChild("Humanoid")
-    root = char:WaitForChild("HumanoidRootPart")
+-- คำนวณความเร็วจาก Slider
+local function updateSpeed()
+    speedValue = speedLevel * 60
 end
-refreshChar()
-player.CharacterAdded:Connect(refreshChar)
+updateSpeed()
 
--- ===== TP WALK =====
-local tpEnabled = false
-local tpLevel = 1
-local tpSpeed = 50
-local tpConn
+-- ===== CORE =====
 
-local function updateTpSpeed()
-    tpSpeed = tpLevel * 50
+local function GetDirection()
+    local char = player.Character
+    local hum = char and char:FindFirstChildOfClass("Humanoid")
+    if hum then
+        return hum.MoveDirection
+    end
 end
-updateTpSpeed()
 
-local function toggleTp(on)
-    tpEnabled = on
-    if tpConn then tpConn:Disconnect() end
+local function ApplyMove(offset)
+    local char = player.Character
+    local root = char and char:FindFirstChild("HumanoidRootPart")
+    local hum = char and char:FindFirstChildOfClass("Humanoid")
+    if root and hum then
+        hum:ChangeState(Enum.HumanoidStateType.Physics)
+        root.AssemblyLinearVelocity = Vector3.zero
+        root.CFrame = root.CFrame + offset
+    end
+end
+
+local function ConnectLoop(fn)
+    return RunService.RenderStepped:Connect(fn)
+end
+
+local function toggleMovement(on)
+    enabled = on
+    if loopConnection then
+        loopConnection:Disconnect()
+        loopConnection = nil
+    end
+
     if on then
-        tpConn = RunService.Heartbeat:Connect(function(dt)
-            if humanoid and root and humanoid.MoveDirection.Magnitude > 0 then
-                root.CFrame = root.CFrame + humanoid.MoveDirection * (tpSpeed * dt)
+        loopConnection = ConnectLoop(function(dt)
+            local dir = GetDirection()
+            if dir and dir.Magnitude > 0 then
+                ApplyMove(dir.Unit * (speedValue * dt))
             end
         end)
     end
 end
 
--- ===== HIGH JUMP =====
-local jumpEnabled = false
-local jumpPower = 100
 
--- ===== INFINITE JUMP =====
-local infJump = false
-UIS.JumpRequest:Connect(function()
-    if infJump and humanoid then
-        humanoid:ChangeState(Enum.HumanoidStateType.Jumping)
-    end
-end)
+local MainTab = Window:Tab({Title = "MAIN", Icon = "user"})
 
--- ===== FLY =====
-local fly = false
-local flySpeed = 100
-local flyConn
-
-local function toggleFly(on)
-    fly = on
-    if flyConn then flyConn:Disconnect() end
-    if on then
-        local bv = Instance.new("BodyVelocity")
-        bv.MaxForce = Vector3.new(9e9,9e9,9e9)
-        bv.Velocity = Vector3.zero
-        bv.Parent = root
-
-        flyConn = RunService.Heartbeat:Connect(function()
-            if not root then return end
-            local cam = workspace.CurrentCamera
-            local dir = Vector3.zero
-            if UIS:IsKeyDown(Enum.KeyCode.W) then dir += cam.CFrame.LookVector end
-            if UIS:IsKeyDown(Enum.KeyCode.S) then dir -= cam.CFrame.LookVector end
-            if UIS:IsKeyDown(Enum.KeyCode.A) then dir -= cam.CFrame.RightVector end
-            if UIS:IsKeyDown(Enum.KeyCode.D) then dir += cam.CFrame.RightVector end
-            if UIS:IsKeyDown(Enum.KeyCode.Space) then dir += Vector3.new(0,1,0) end
-            if UIS:IsKeyDown(Enum.KeyCode.LeftControl) then dir -= Vector3.new(0,1,0) end
-            bv.Velocity = dir.Magnitude > 0 and dir.Unit * flySpeed or Vector3.zero
-        end)
-    else
-        for _,v in ipairs(root:GetChildren()) do
-            if v:IsA("BodyVelocity") then v:Destroy() end
-        end
-    end
-end
-
--- ===== NOCLIP =====
-local noclip = false
-RunService.Stepped:Connect(function()
-    if noclip and player.Character then
-        for _,v in ipairs(player.Character:GetDescendants()) do
-            if v:IsA("BasePart") then
-                v.CanCollide = false
-            end
-        end
-    end
-end)
-
--- =========================
--- CREATE TAB + UI CONTROLS
--- =========================
-
-local MoveTab = Window:Tab({Title="Movement", Icon="zap"})
-
-MoveTab:Toggle({
-    Title="TP Walk",
-    Description="🏃 วิ่งทะลุความเร็ว",
-    Callback=function(v) toggleTp(v) end
-})
-
-MoveTab:Slider({
-    Title="TP Speed",
-    Description="⚡ ปรับความเร็ว",
-    Min=1, Max=5, Value=tpLevel,
-    Callback=function(v) tpLevel=v updateTpSpeed() end
-})
-
-MoveTab:Toggle({
-    Title="High Jump",
-    Description="🦘 กระโดดสูง",
-    Callback=function(v)
-        jumpEnabled=v
-        humanoid.UseJumpPower=true
-        humanoid.JumpPower = v and jumpPower or 50
+MainTab:Toggle({
+    Title = "walk speed",
+    Default = false,
+    Callback = function(v)
+        toggleMovement(v)
     end
 })
 
-MoveTab:Slider({
-    Title="Jump Power",
-    Description="📏 ปรับแรงกระโดด",
-    Min=50, Max=300, Value=jumpPower,
-    Callback=function(v)
-        jumpPower=v
-        if jumpEnabled then humanoid.JumpPower=v end
+MainTab:Slider({
+    Title = "Speed",
+    Step = 1,
+    Value = {
+        Min = 1,
+        Max = 5,
+        Default = 1
+    },
+    Callback = function(v)
+        speedLevel = tonumber(v) or 1
+        updateSpeed()
     end
-})
-
-MoveTab:Toggle({
-    Title="Infinite Jump",
-    Description="♾️ กระโดดไม่จำกัด",
-    Callback=function(v) infJump=v end
-})
-
-MoveTab:Toggle({
-    Title="Fly",
-    Description="🛸 บิน",
-    Callback=function(v) toggleFly(v) end
-})
-
-MoveTab:Slider({
-    Title="Fly Speed",
-    Description="🚀 ความเร็วบิน",
-    Min=50, Max=300, Value=flySpeed,
-    Callback=function(v) flySpeed=v end
-})
-
-MoveTab:Toggle({
-    Title="Noclip",
-    Description="👻 ทะลุกำแพง",
-    Callback=function(v) noclip=v end
 })
