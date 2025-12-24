@@ -83,60 +83,40 @@ UserInputService.InputBegan:Connect(function(input, gp)
 end)
 
 
+
 -- STATE
 local enabled = false
 local speedLevel = 1
 local speedValue = 60
 local loopConnection = nil
 
--- คำนวณความเร็วจาก Slider
 local function updateSpeed()
     speedValue = speedLevel * 60
 end
 updateSpeed()
 
--- ===== CORE =====
-
-local function GetDirection()
-    local char = player.Character
-    local hum = char and char:FindFirstChildOfClass("Humanoid")
-    if hum then
-        return hum.MoveDirection
-    end
-end
-
-local function ApplyMove(offset)
-    local char = player.Character
-    local root = char and char:FindFirstChild("HumanoidRootPart")
-    local hum = char and char:FindFirstChildOfClass("Humanoid")
-    if root and hum then
-        hum:ChangeState(Enum.HumanoidStateType.Physics)
-        root.AssemblyLinearVelocity = Vector3.zero
-        root.CFrame = root.CFrame + offset
-    end
-end
-
-local function ConnectLoop(fn)
-    return RunService.RenderStepped:Connect(fn)
-end
-
 local function toggleMovement(on)
     enabled = on
+
     if loopConnection then
         loopConnection:Disconnect()
         loopConnection = nil
     end
 
     if on then
-        loopConnection = ConnectLoop(function(dt)
-            local dir = GetDirection()
-            if dir and dir.Magnitude > 0 then
-                ApplyMove(dir.Unit * (speedValue * dt))
+        loopConnection = RunService.Heartbeat:Connect(function(dt)
+            local char = player.Character
+            local root = char and char:FindFirstChild("HumanoidRootPart")
+            local hum = char and char:FindFirstChildOfClass("Humanoid")
+            if not (char and root and hum) then return end
+
+            local moveDir = hum.MoveDirection
+            if moveDir.Magnitude > 0 then
+                root.CFrame = root.CFrame + moveDir * (speedValue * dt)
             end
         end)
     end
 end
-
 
 local MainTab = Window:Tab({Title = "MAIN", Icon = "user"})
 
