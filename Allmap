@@ -84,11 +84,17 @@ end)
 
 
 
--- STATE
+-- ตัวแปร
 local enabled = false
 local speedLevel = 1
 local speedValue = 60
 local loopConnection = nil
+
+local jumpEnabled = false
+local jumpPowerValue = 50
+local jumpLoop = nil
+
+
 
 local function updateSpeed()
     speedValue = speedLevel * 60
@@ -119,6 +125,30 @@ local function toggleMovement(on)
 end
 
 
+-- ============
+-- ฟังชั่นกระโดดสูง
+-- ============
+
+local function toggleHighJump(on)
+    jumpEnabled = on
+
+    if jumpLoop then
+        jumpLoop:Disconnect()
+        jumpLoop = nil
+    end
+
+    if on then
+        jumpLoop = RunService.Heartbeat:Connect(function()
+            local char = player.Character
+            local hum = char and char:FindFirstChildOfClass("Humanoid")
+            if hum then
+                hum.UseJumpPower = true
+                hum.JumpPower = jumpPowerValue
+            end
+        end)
+    end
+end
+
 local MainTab = Window:Tab({Title = "MAIN", Icon = "user"})
 
 
@@ -144,5 +174,28 @@ MainTab:Slider({
     Callback = function(v)
         speedLevel = tonumber(v) or 1
         updateSpeed()
+    end
+})
+
+MainTab:Toggle({
+    Title = "Jump power",
+    Desc = "โดดสูง",
+    Default = false,
+    Callback = function(v)
+        toggleHighJump(v)
+    end
+})
+
+MainTab:Slider({
+    Title = "Jump Slider",
+    Desc = "ปรับความสูงการกระโดด",
+    Step = 5,
+    Value = {
+        Min = 50,
+        Max = 500,
+        Default = 50
+    },
+    Callback = function(v)
+        jumpPowerValue = tonumber(v) or 50
     end
 })
