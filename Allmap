@@ -177,22 +177,22 @@ RunService.Stepped:Connect(function()
 end)
 
 -- ===== TAB =====
-local MoveTab = Window:Tab({Title="Movement", Icon="zap"})
+local MainTab = Window:Tab({Title="MAIN", Icon="user"})
 
-MoveTab:Toggle({
+MainTab:Toggle({
     Title="TP Walk",
     Description="🏃 วิ่งทะลุความเร็ว",
     Callback=function(v) toggleTp(v) end
 })
 
-MoveTab:Slider({
+MainTab:Slider({
     Title="TP Speed",
     Description="⚡ ปรับความเร็ว",
     Min=1, Max=5, Value=tpLevel,
     Callback=function(v) tpLevel=v updateTpSpeed() end
 })
 
-MoveTab:Toggle({
+MainTab:Toggle({
     Title="High Jump",
     Description="🦘 กระโดดสูง",
     Callback=function(v)
@@ -202,7 +202,7 @@ MoveTab:Toggle({
     end
 })
 
-MoveTab:Slider({
+MainTab:Slider({
     Title="Jump Power",
     Description="📏 ปรับแรงกระโดด",
     Min=50, Max=300, Value=jumpPower,
@@ -212,26 +212,26 @@ MoveTab:Slider({
     end
 })
 
-MoveTab:Toggle({
+MainTab:Toggle({
     Title="Infinite Jump",
     Description="♾️ กระโดดไม่จำกัด",
     Callback=function(v) infJump=v end
 })
 
-MoveTab:Toggle({
+MainTab:Toggle({
     Title="Fly",
     Description="🛸 บินได้",
     Callback=function(v) toggleFly(v) end
 })
 
-MoveTab:Slider({
+MainTab:Slider({
     Title="Fly Speed",
     Description="🚀 ความเร็วบิน",
     Min=50, Max=300, Value=flySpeed,
     Callback=function(v) flySpeed=v end
 })
 
-MoveTab:Toggle({
+MainTab:Toggle({
     Title="Noclip",
     Description="👻 ทะลุกำแพง",
     Callback=function(v) noclip=v end
