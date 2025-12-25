@@ -2,10 +2,9 @@
 local Players = game:GetService("Players")
 local CoreGui = game:GetService("CoreGui")
 local UserInputService = game:GetService("UserInputService")
-local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
 local player = Players.LocalPlayer
-
+local LocalPlayer = game:GetService("Players").LocalPlayer
 
 local WindUI = loadstring(game:HttpGet(
     "https://github.com/Footagesus/WindUI/releases/latest/download/main.lua"
@@ -97,6 +96,9 @@ local jumpLoop = nil
 local frontNoclip = false
 local frontLoop
 
+local espEnabled = false
+local espTags = {} 
+
 
 local function updateSpeed()
     speedValue = speedLevel * 60
@@ -156,7 +158,6 @@ end
 --  Noclip 
 -- ============
 
-
 local function toggleFrontUnCanCollide(on)
     frontNoclip = on
 
@@ -199,6 +200,76 @@ API_Bypass["_CR.DayToDay2044_Fly"] = API_Bypass["_CR.DayToDay2044_Fly"] or false
 API_Bypass["_CR.DayToDay2044_Speed"] = API_Bypass["_CR.DayToDay2044_Speed"] or 100
 
 loadstring(game:HttpGet("https://raw.githubusercontent.com/SUNRTX22/What_happen_dafak/refs/heads/main/Fly_API"))()
+
+
+
+-- ========
+-- ฟังชั่นในแท็ปesp
+-- ===========
+
+local function createNameTag(player)
+    if not espEnabled then return end
+    local character = player.Character
+    if not character then return end
+    local head = character:FindFirstChild("Head")
+    if not head then return end
+
+    if head:FindFirstChild("ESP_NameTag") then
+        head.ESP_NameTag:Destroy()
+    end
+
+    local billboard = Instance.new("BillboardGui")
+    billboard.Name = "ESP_NameTag"
+    billboard.Adornee = head
+    billboard.Size = UDim2.new(0, 80, 0, 20)
+    billboard.StudsOffset = Vector3.new(0, 2.5, 0) -- สูงกว่าหัว
+    billboard.AlwaysOnTop = true
+
+    local textLabel = Instance.new("TextLabel")
+    textLabel.Parent = billboard
+    textLabel.Size = UDim2.new(1, 0, 1, 0)
+    textLabel.BackgroundTransparency = 1
+    textLabel.Text = player.Name
+    textLabel.TextScaled = true
+    textLabel.Font = Enum.Font.SourceSansBold
+
+    if player.Team then
+        textLabel.TextColor3 = player.Team.TeamColor.Color
+    else
+        textLabel.TextColor3 = Color3.new(1,1,1)
+    end
+
+    billboard.Parent = head
+    espTags[player] = billboard
+end
+
+local function removeNameTag(player)
+    if espTags[player] and espTags[player].Parent then
+        espTags[player]:Destroy()
+    end
+    espTags[player] = nil
+end
+
+local function setupPlayer(player)
+    player.CharacterAdded:Connect(function()
+        if espEnabled then
+            createNameTag(player)
+        end
+    end)
+    if player.Character and espEnabled then
+        createNameTag(player)
+    end
+end
+
+for _, player in pairs(Players:GetPlayers()) do
+    if player ~= LocalPlayer then
+        setupPlayer(player)
+    end
+end
+
+Players.PlayerAdded:Connect(setupPlayer)
+
+
 
 local MainTab = Window:Tab({Title = "MAIN", Icon = "user"})
 
@@ -283,3 +354,34 @@ MainTab:Slider({
         API_Bypass["_CR.DayToDay2044_Speed"] = tonumber(v) or 100
     end
 })
+
+
+
+-- ========
+-- Esptab
+-- =========
+
+local ESPTab = Window:Tab({Title = "ESP", Icon = "eye"})
+
+
+ESP_Tab:Toggle({
+    Title = "Name ESP",
+    Desc = "มองชื่อ",
+    Default = false,
+    Callback = function(value)
+        espEnabled = value
+        if espEnabled then
+            for _, player in pairs(Players:GetPlayers()) do
+                if player ~= LocalPlayer then
+                    createNameTag(player)
+                end
+            end
+        else
+            for _, player in pairs(Players:GetPlayers()) do
+                removeNameTag(player)
+            end
+        end
+    end
+})
+
+
