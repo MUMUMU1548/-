@@ -364,7 +364,7 @@ MainTab:Slider({
 local ESPTab = Window:Tab({Title = "ESP", Icon = "eye"})
 
 
-ESP_Tab:Toggle({
+ESPTab:Toggle({
     Title = "Name ESP",
     Desc = "มองชื่อ",
     Default = false,
