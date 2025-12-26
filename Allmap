@@ -94,9 +94,8 @@ local jumpPowerValue = 50
 local jumpLoop = nil
 
 local frontNoclip = false
-local radius = 6 
+local radius = 6
 local trackedParts = {}
-
 
 
 -- ====
@@ -161,40 +160,37 @@ end
 --  Noclip 
 -- ============
 
-local function processObject(obj, root)
-    if obj:IsA("BasePart") then
-        local distance = (obj.Position - root.Position).Magnitude
-        local underFoot = obj.Position.Y + obj.Size.Y/2 < root.Position.Y
-
-        if distance <= radius and not underFoot then
-            obj.CanCollide = false
-            trackedParts[obj] = true
-        else
-            if trackedParts[obj] then
-                obj.CanCollide = true
-                trackedParts[obj] = nil
-            end
-        end
-    elseif obj:IsA("Model") then
-        for _, child in pairs(obj:GetDescendants()) do
-            processObject(child, root)
-        end
-    end
-end
 
 local function applyNoclip()
     local char = player.Character
     local root = char and char:FindFirstChild("HumanoidRootPart")
     if not root then return end
 
-    for _, obj in pairs(workspace:GetDescendants()) do
-        if obj ~= root then
-            processObject(obj, root)
+    local parts = workspace:GetPartBoundsInRadius(root.Position, radius)
+    local currentParts = {}
+
+    for _, part in pairs(parts) do
+        if part:IsA("BasePart") and part ~= root then
+            local underFoot = part.Position.Y + part.Size.Y/2 < root.Position.Y
+            if not underFoot then
+                part.CanCollide = false
+                trackedParts[part] = true
+                currentParts[part] = true
+            end
+        end
+    end
+
+    for part,_ in pairs(trackedParts) do
+        if not currentParts[part] then
+            if part:IsA("BasePart") then
+                part.CanCollide = true
+            end
+            trackedParts[part] = nil
         end
     end
 end
 
--- ลดแล็ค 
+-- Loop ตรวจทุก ~0.12 วินาที
 local accumulator = 0
 RunService.RenderStepped:Connect(function(dt)
     if not frontNoclip then return end
@@ -204,7 +200,6 @@ RunService.RenderStepped:Connect(function(dt)
         accumulator = 0
     end
 end)
-
 
 
 -- ========
@@ -277,11 +272,12 @@ MainTab:Slider({
 })
 
 MainTab:Toggle({
-   Title = "noclip",
-   Desc = "ทะลุกำแพง",
+    Title = "Noclip",
+    Desc = "ทะลุกำแพง",
     Callback = function(state)
         frontNoclip = state
         if not frontNoclip then
+            -- คืนค่า CanCollide ให้ทุกพาร์ทที่ถูกปรับ
             for part,_ in pairs(trackedParts) do
                 if part:IsA("BasePart") then
                     part.CanCollide = true
@@ -291,6 +287,7 @@ MainTab:Toggle({
         end
     end
 })
+
 
 
 MainTab:Toggle({
