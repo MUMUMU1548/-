@@ -94,7 +94,14 @@ local jumpPowerValue = 50
 local jumpLoop = nil
 
 local frontNoclip = false
-local frontLoop
+local radius = 6 
+local trackedParts = {}
+
+
+
+-- ====
+-- ฟังชั่นต่างๆ
+-- ======
 
 local function updateSpeed()
     speedValue = speedLevel * 60
@@ -154,37 +161,50 @@ end
 --  Noclip 
 -- ============
 
-local function toggleFrontUnCanCollide(on)
-    frontNoclip = on
+local function processObject(obj, root)
+    if obj:IsA("BasePart") then
+        local distance = (obj.Position - root.Position).Magnitude
+        local underFoot = obj.Position.Y + obj.Size.Y/2 < root.Position.Y
 
-    if frontLoop then
-        frontLoop:Disconnect()
-        frontLoop = nil
-    end
-
-    if on then
-        frontLoop = RunService.RenderStepped:Connect(function()
-            local char = player.Character
-            local root = char and char:FindFirstChild("HumanoidRootPart")
-            if not root then return end
-
-            -- ยิง Ray ไปข้างหน้า
-            local rayParams = RaycastParams.new()
-            rayParams.FilterDescendantsInstances = {char}
-            rayParams.FilterType = Enum.RaycastFilterType.Blacklist
-
-            local result = workspace:Raycast(
-                root.Position,
-                root.CFrame.LookVector * 4,
-                rayParams
-            )
-
-            if result and result.Instance and result.Instance:IsA("BasePart") then
-                result.Instance.CanCollide = false
+        if distance <= radius and not underFoot then
+            obj.CanCollide = false
+            trackedParts[obj] = true
+        else
+            if trackedParts[obj] then
+                obj.CanCollide = true
+                trackedParts[obj] = nil
             end
-        end)
+        end
+    elseif obj:IsA("Model") then
+        for _, child in pairs(obj:GetDescendants()) do
+            processObject(child, root)
+        end
     end
 end
+
+local function applyNoclip()
+    local char = player.Character
+    local root = char and char:FindFirstChild("HumanoidRootPart")
+    if not root then return end
+
+    for _, obj in pairs(workspace:GetDescendants()) do
+        if obj ~= root then
+            processObject(obj, root)
+        end
+    end
+end
+
+-- ลดแล็ค 
+local accumulator = 0
+RunService.RenderStepped:Connect(function(dt)
+    if not frontNoclip then return end
+    accumulator = accumulator + dt
+    if accumulator >= 0.12 then
+        applyNoclip()
+        accumulator = 0
+    end
+end)
+
 
 
 -- ========
@@ -257,11 +277,18 @@ MainTab:Slider({
 })
 
 MainTab:Toggle({
-    Title = "Noclip",
-    Desc = "ทะลุกำแพง",
-    Default = false,
-    Callback = function(v)
-        toggleFrontUnCanCollide(v)
+   Title = "noclip",
+   Desc = "ทะลุกำแพง",
+    Callback = function(state)
+        frontNoclip = state
+        if not frontNoclip then
+            for part,_ in pairs(trackedParts) do
+                if part:IsA("BasePart") then
+                    part.CanCollide = true
+                end
+            end
+            trackedParts = {}
+        end
     end
 })
 
