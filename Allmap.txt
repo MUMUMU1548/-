@@ -97,6 +97,7 @@ local frontNoclip = false
 local radius = 6
 local trackedParts = {}
 
+local ESPEnabled = false
 
 -- ====
 -- ฟังชั่นต่างๆ
@@ -218,6 +219,79 @@ loadstring(game:HttpGet("https://raw.githubusercontent.com/SUNRTX22/What_happen_
 -- ฟังชั่นในแท็ปesp
 -- ===========
 
+local function applyESP(player, character)
+    if not character:FindFirstChild("Head") then return end
+    local head = character.Head
+
+    if head:FindFirstChild("ESP") then
+        head.ESP:Destroy()
+    end
+
+    local billboard = Instance.new("BillboardGui")
+    billboard.Name = "ESP"
+    billboard.Adornee = head
+    billboard.Size = UDim2.new(0, 100, 0, 30)
+    billboard.StudsOffset = Vector3.new(0, 3, 0)
+    billboard.AlwaysOnTop = true
+
+    local nameLabel = Instance.new("TextLabel")
+    nameLabel.Size = UDim2.new(1, 0, 1, 0)
+    nameLabel.BackgroundTransparency = 1
+    nameLabel.Text = player.Name
+    nameLabel.Font = Enum.Font.Arial
+    nameLabel.TextSize = 14
+    nameLabel.TextStrokeTransparency = 0
+    nameLabel.TextColor3 = player.Team and player.Team.TeamColor.Color or Color3.fromRGB(255,255,255)
+    nameLabel.Parent = billboard
+
+    billboard.Parent = head
+end
+
+local function updateAllESPVisibility()
+    for _, player in ipairs(Players:GetPlayers()) do
+        if player.Character and player.Character:FindFirstChild("Head") then
+            local esp = player.Character.Head:FindFirstChild("ESP")
+            if ESPEnabled then
+                if not esp then
+                    applyESP(player, player.Character)
+                end
+            else
+                if esp then
+                    esp:Destroy()
+                end
+            end
+        end
+    end
+end
+
+local function setupPlayer(player)
+    if player == LocalPlayer then return end
+
+    player.CharacterAdded:Connect(function(char)
+        task.wait(0.3)
+        if ESPEnabled then
+            applyESP(player, char)
+        end
+    end)
+
+    player:GetPropertyChangedSignal("Team"):Connect(function()
+        if player.Character and player.Character:FindFirstChild("Head") then
+            local esp = player.Character.Head:FindFirstChild("ESP")
+            if esp then
+                esp.TextLabel.TextColor3 = player.Team and player.Team.TeamColor.Color or Color3.fromRGB(255,255,255)
+            end
+        end
+    end)
+
+    if player.Character and ESPEnabled then
+        applyESP(player, player.Character)
+    end
+end
+
+for _, player in ipairs(Players:GetPlayers()) do
+    setupPlayer(player)
+end
+Players.PlayerAdded:Connect(setupPlayer)
 
 
 local MainTab = Window:Tab({Title = "MAIN", Icon = "user"})
@@ -321,4 +395,12 @@ MainTab:Slider({
 
 local ESPTab = Window:Tab({Title = "ESP", Icon = "eye"})
 
-
+ESPTab:Toggle({
+    Title = "ESP Name",
+    Desc = "มองชื่อ",
+    Default = false,
+    Callback = function(state)
+        ESPEnabled = state
+        updateAllESPVisibility()
+    end
+})
