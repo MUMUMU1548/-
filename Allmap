@@ -99,6 +99,8 @@ local loopConnection = nil
 local jumpEnabled = false
 local jumpPowerValue = 50
 local jumpLoop = nil
+local InfiniteJumpEnabled = false
+
 
 local frontNoclip = false
 local radius = 6
@@ -219,6 +221,20 @@ API_Bypass["_CR.DayToDay2044_Speed"] = API_Bypass["_CR.DayToDay2044_Speed"] or 1
 
 loadstring(game:HttpGet("https://raw.githubusercontent.com/SUNRTX22/What_happen_dafak/refs/heads/main/Fly_API"))()
 
+-- =≠=======
+-- อินฟินิตี้จั้ม
+-- ===========
+
+local player = Players.LocalPlayer
+local character = player.Character or player.CharacterAdded:Wait()
+local humanoid = character:WaitForChild("Humanoid")
+local function onJump()
+    if InfiniteJumpEnabled and humanoid.Jump then
+        humanoid:ChangeState(Enum.HumanoidStateType.Jumping)
+    end
+end
+
+humanoid:GetPropertyChangedSignal("Jump"):Connect(onJump)
 
 
 -- ========
@@ -275,6 +291,15 @@ MainTab:Slider({
     },
     Callback = function(v)
         jumpPowerValue = tonumber(v) or 50
+    end
+})
+
+MainTab:Toggle({
+    Title = "Infinite Jump",
+    Desc = "กระโดดไม่จำกัด",
+    Default = false,
+    Callback = function(state)
+        InfiniteJumpEnabled = state
     end
 })
 
