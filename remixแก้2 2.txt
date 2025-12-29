@@ -247,21 +247,24 @@ local function isPlayerExcluded(playerName)
     end
     return false
 end
-local function getClosestTarget()
+-- ฟังก์ชัน GetClosestTarget ใหม่ (จากไฟล์ที่ 2)
+local function GetClosestTarget()
     local closest = nil
-    local shortestDistance = FOVRadius -- ใช้ FOV เป็นขอบเขต
+    local shortestDistance = FOVRadius
     local center = Vector2.new(Camera.ViewportSize.X / 2, Camera.ViewportSize.Y / 2)
-    for _, player in ipairs(Players:GetPlayers()) do
+    
+    for _, player in pairs(Players:GetPlayers()) do
         if player ~= LocalPlayer and player.Character then
             local head = player.Character:FindFirstChild("Head")
             local humanoid = player.Character:FindFirstChild("Humanoid")
             local hrp = player.Character:FindFirstChild("HumanoidRootPart")
+            
             if head and humanoid and humanoid.Health > 0 and hrp then
                 local screenPos, onScreen = Camera:WorldToViewportPoint(head.Position)
                 if onScreen then
                     local screenVector = Vector2.new(screenPos.X, screenPos.Y)
                     local distanceFromCenter = (screenVector - center).Magnitude
-                    -- อยู่ใน FOV และไม่ถูกยกเว้น
+                    
                     if distanceFromCenter <= FOVRadius and not isPlayerExcluded(player.Name) then
                         if distanceFromCenter < shortestDistance then
                             shortestDistance = distanceFromCenter
@@ -274,10 +277,78 @@ local function getClosestTarget()
     end
     return closest
 end
-local function predictPosition(head, hrp)
-    local ping = getPing()
-    local velocity = hrp and hrp.Velocity or Vector3.zero
-    return head.Position + (velocity * ping * 1.15)
+
+-- ฟังก์ชัน PredictPosition ใหม่ (จากไฟล์ที่ 2)
+local __PredictData = {}
+
+local function PredictPosition(origin, targetPos, approxVel, travelTime, gravity)
+    local t = travelTime or 0.15
+
+    -- หา player จากตำแหน่ง
+    local targetPlayer
+    for _, plr in ipairs(game.Players:GetPlayers()) do
+        if plr.Character then
+            local hrp = plr.Character:FindFirstChild("HumanoidRootPart")
+            if hrp and (hrp.Position - targetPos).Magnitude < 2 then
+                targetPlayer = plr
+                break
+            end
+        end
+    end
+
+    -- fallback ถ้าหา player ไม่เจอ
+    if not targetPlayer then
+        return targetPos + approxVel * t
+    end
+
+    if not __PredictData[targetPlayer] then
+        __PredictData[targetPlayer] = {
+            vel = {},
+            last = nil,
+            confidence = 0
+        }
+    end
+
+    local data = __PredictData[targetPlayer]
+
+    -- เก็บ velocity history
+    table.insert(data.vel, approxVel)
+    if #data.vel > 12 then
+        table.remove(data.vel, 1)
+    end
+
+    -- ตรวจ spin / jitter
+    local unstable = false
+    if #data.vel >= 3 then
+        local dv = (data.vel[#data.vel] - data.vel[#data.vel-1]).Magnitude
+        unstable = dv > 250
+    end
+
+    data.confidence = math.clamp(
+        data.confidence + (unstable and 0.15 or -0.1),
+        0,
+        1
+    )
+
+    -- smooth velocity
+    local smoothVel = Vector3.zero
+    for _, v in ipairs(data.vel) do
+        smoothVel += v
+    end
+    smoothVel /= #data.vel
+
+    -- adaptive multiplier
+    local mult = data.confidence > 0.4 and 0.45 or 1.35
+
+    local predicted = targetPos + (smoothVel * t * mult)
+
+    -- smoothing output
+    if data.last then
+        predicted = data.last:Lerp(predicted, data.confidence > 0.4 and 0.15 or 0.3)
+    end
+
+    data.last = predicted
+    return predicted
 end
 local function isBehindWall(startPos, endPos)
     if not startPos or not endPos then
@@ -287,6 +358,7 @@ local function isBehindWall(startPos, endPos)
     local ignoreList = {}
     if LocalPlayer.Character then
         table.insert(ignoreList, LocalPlayer.Character)
+noreList, LocalPlayer.Character)
     end
     if CurrentTarget and CurrentTarget.Character then
         table.insert(ignoreList, CurrentTarget.Character)
@@ -311,9 +383,7 @@ local function setupCharacter(char)
     end
 
     if moveConnection then
-        pcall(
-            function()
-                moveConnection:Disconnect()
+                     moveConnection:Disconnect()
             end
         )
     end
