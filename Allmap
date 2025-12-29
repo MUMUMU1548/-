@@ -225,16 +225,23 @@ loadstring(game:HttpGet("https://raw.githubusercontent.com/SUNRTX22/What_happen_
 -- อินฟินิตี้จั้ม
 -- ===========
 
-local player = Players.LocalPlayer
-local character = player.Character or player.CharacterAdded:Wait()
-local humanoid = character:WaitForChild("Humanoid")
-local function onJump()
-    if InfiniteJumpEnabled and humanoid.Jump then
-        humanoid:ChangeState(Enum.HumanoidStateType.Jumping)
-    end
+local humanoid
+local function setupHumanoid(character)
+    humanoid = character:WaitForChild("Humanoid")
+    humanoid:GetPropertyChangedSignal("Jump"):Connect(function()
+        if InfiniteJumpEnabled and humanoid.Jump then
+            humanoid:ChangeState(Enum.HumanoidStateType.Jumping)
+        end
+    end)
 end
 
-humanoid:GetPropertyChangedSignal("Jump"):Connect(onJump)
+if Players.LocalPlayer.Character then
+    setupHumanoid(Players.LocalPlayer.Character)
+end
+
+Players.LocalPlayer.CharacterAdded:Connect(function(char)
+    setupHumanoid(char)
+end)
 
 
 -- ========
@@ -302,6 +309,7 @@ MainTab:Toggle({
         InfiniteJumpEnabled = state
     end
 })
+
 
 MainTab:Toggle({
     Title = "Noclip",
