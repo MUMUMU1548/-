@@ -2,8 +2,7 @@ loadstring(game:HttpGet("https://raw.githubusercontent.com/MUMUMU1548/Main/refs/
 
 
 loadstring(game:HttpGet("https://raw.githubusercontent.com/MUMUMU1548/Main/refs/heads/main/Admin%F0%9F%9F%A2"))()
-◌า◌ำ◌ำ◌ำสำสำสำสำสกสกสำำววำ
-กากากำกำกดวดวดวกวกวกวกวกวกวกวำวำบำงวำวำวำวำ
+
 -- =========================
 -- Services
 -- =========================
@@ -1921,126 +1920,86 @@ loadESP()
 -- == UI Tabs ==
 local Tab = Window:Tab({Title = "COMBAT:", Icon = "crosshair"})
 Tab:Section({Title = "GUN:"})
-local SilentToggle =
-    Tab:Toggle(
-    {
-        Title = "Silent Aim",
-        Default = false,
-        Callback = function(state)
-            SilentAimEnabled = state
-            CurrentTarget = nil
-            if state then
-                SilentAimAttachEnabled = false
-                GoodGunEnabled = false
-                if AttachToggle then
-                    AttachToggle:Set(false)
-                end
-                if GoodGunToggle then
-                    GoodGunToggle:Set(false)
-                end
-            end
-        end
-    }
-)
+
+-- ปุ่มเดียวรวมทุกอย่าง
+local SilentToggle = Tab:Toggle({
+    Title = "Silent Aim | WallBang | ",
+    Desc = "",
+    Default = false,
+    Callback = function(state)
+        SilentAimEnabled = state
+        GoodGunEnabled = state      -- WallBang
+        SilentAimAttachEnabled = state  -- Anti-Lock
+        CurrentTarget = nil
+    end
+})
 myConfig:Register("SilentAim", SilentToggle)
 
-local GoodGunToggle =
-    Tab:Toggle(
-    {
-        Title = "GoodGun (WallBang)",
-        Default = false,
-        Callback = function(state)
-            GoodGunEnabled = state
-            CurrentTarget = nil
-            if state then
-                SilentAimEnabled = false
-                SilentAimAttachEnabled = false
-                if SilentToggle then
-                    SilentToggle:Set(false)
-                end
-                if AttachToggle then
-                    AttachToggle:Set(false)
-                end
-            end
-        end
-    }
-)
-myConfig:Register("GoodGun", GoodGunToggle)
+-- ไม่ต้องมีปุ่มอื่นอีก
 
-local AttachToggle =
-    Tab:Toggle(
-    {
-        Title = "Silent Aim (Attach Anti Lock)",
-        Default = false,
-        Callback = function(state)
-            SilentAimAttachEnabled = state
-            CurrentTarget = nil
-            if state then
-                SilentAimEnabled = false
-                GoodGunEnabled = false
-                if SilentToggle then
-                    SilentToggle:Set(false)
-                end
-                if GoodGunToggle then
-                    GoodGunToggle:Set(false)
-                end
+-- ปุ่ม FOV Slider
+local FOVSlider = Tab:Slider({
+    Title = "FOV: ",
+    Step = 1,
+    Value = {
+        Min = 20,
+        Max = 750,
+        Default = FOVRadius
+    },
+    Callback = function(value)
+        FOVRadius = tonumber(value) or 120
+        if SilentFOVCircle then
+            if isMobile then
+                SilentFOVCircle.Size = UDim2.fromOffset(FOVRadius * 2, FOVRadius * 2)
+            else
+                SilentFOVCircle.Radius = FOVRadius
             end
         end
-    }
-)
-myConfig:Register("SilentAimAttach", AttachToggle)
-local FOVSlider =
-    Tab:Slider(
-    {
-        Title = "FOV: ",
-        Step = 1,
-        Value = {
-            Min = 20,
-            Max = 750,
-            Default = FOVRadius
-        },
-        Callback = function(value)
-            FOVRadius = tonumber(value) or 120
-            if SilentFOVCircle then
-                if isMobile then
-                    SilentFOVCircle.Size = UDim2.fromOffset(FOVRadius * 2, FOVRadius * 2)
-                else
-                    SilentFOVCircle.Radius = FOVRadius
-                end
-            end
-        end
-    }
-)
-myConfig:Register("FOVRadius", FOVSlider)
-local FriendsInput =
-    Tab:Input(
-    {
-        Title = "Sefe Friend List",
-        Desc = "Enter Player Name",
-        Value = "",
-        InputIcon = "shield-check",
-        Type = "Input",
-        Placeholder = "",
-        Callback = function(input)
-            excludedPlayerNames = {}
-            for name in string.gmatch(input, "%S+") do
-                table.insert(excludedPlayerNames, name)
-            end
-            for _, player in pairs(Players:GetPlayers()) do
-                if espPlayers[player] and espPlayers[player].drawings then
-                    local nameText = espPlayers[player].drawings[1]
-                    nameText.Color =
-                        isPlayerExcluded(player.Name) and Color3.fromRGB(0, 255, 0) or Color3.fromRGB(255, 255, 255)
-                end
-            end
-        end
-    }
-)
-myConfig:Register("FriendsList", FriendsInput)
-pcall(
-    function()
-        Tab:Divider()
     end
+})
+myConfig:Register("FOVRadius", FOVSlider)
+
+-- ปุ่ม Show FOV
+local ShowFOVToggle = Tab:Toggle({
+    Title = "Show FOV",
+    Desc = "แสดง/ซ่อน วง FOV",
+    Default = ShowFOV,
+    Callback = function(state)
+        ShowFOV = state
+        if SilentFOVCircle then
+            SilentFOVCircle.Visible = state and SilentAimEnabled
+        end
+    end
+})
+myConfig:Register("ShowFOV", ShowFOVToggle)
+
+-- ปุ่ม Friend List
+local FriendsInput = Tab:Input({
+    Title = "Safe Friend List",
+    Desc = "Enter Player Name",
+    Value = "",
+    InputIcon = "shield-check",
+    Type = "Input",
+    Placeholder = "",
+    Callback = function(input)
+        excludedPlayerNames = {}
+        for name in string.gmatch(input, "%S+") do
+            table.insert(excludedPlayerNames, name)
+        end
+        for _, player in pairs(Players:GetPlayers()) do
+            if espPlayers[player] and espPlayers[player].drawings then
+                local nameText = espPlayers[player].drawings[1]
+                nameText.Color =
+                    isPlayerExcluded(player.Name) and Color3.fromRGB(0, 255, 0) or Color3.fromRGB(255, 255, 255)
+            end
+        end
+    end
+})
+myConfig:Register("FriendsList", FriendsInput)
+
+pcall(function()
+    Tab:Divider()
+end)
 )
 Tab:Section({Title = "COMBAT:"})
 local FistsToggle =
