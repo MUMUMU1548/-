@@ -1440,6 +1440,80 @@ local function isShotgun()
     end
     return false
 end
+-- ==========
+local __PredictData = {}
+
+local function PredictPosition(origin, targetPos, approxVel, travelTime, gravity)
+    local t = travelTime or 0.15
+
+    -- หา player จากตำแหน่ง (เพื่อให้เข้ากับโค้ดเดิม)
+    local targetPlayer
+    for _, plr in ipairs(game.Players:GetPlayers()) do
+        if plr.Character then
+            local hrp = plr.Character:FindFirstChild("HumanoidRootPart")
+            if hrp and (hrp.Position - targetPos).Magnitude < 2 then
+                targetPlayer = plr
+                break
+            end
+        end
+    end
+
+    -- fallback ถ้าหา player ไม่เจอ
+    if not targetPlayer then
+        return targetPos + approxVel * t
+    end
+
+    if not __PredictData[targetPlayer] then
+        __PredictData[targetPlayer] = {
+            vel = {},
+            last = nil,
+            confidence = 0
+        }
+    end
+
+    local data = __PredictData[targetPlayer]
+
+    -- เก็บ velocity history
+    table.insert(data.vel, approxVel)
+    if #data.vel > 12 then
+        table.remove(data.vel, 1)
+    end
+
+    -- ตรวจ spin / jitter
+    local unstable = false
+    if #data.vel >= 3 then
+        local dv = (data.vel[#data.vel] - data.vel[#data.vel-1]).Magnitude
+        unstable = dv > 250
+    end
+
+    data.confidence = math.clamp(
+        data.confidence + (unstable and 0.15 or -0.1),
+        0,
+        1
+    )
+
+    -- smooth velocity
+    local smoothVel = Vector3.zero
+    for _, v in ipairs(data.vel) do
+        smoothVel += v
+    end
+    smoothVel /= #data.vel
+
+    -- adaptive multiplier
+    local mult = data.confidence > 0.4 and 0.45 or 1.35
+
+    local predicted = targetPos + (smoothVel * t * mult)
+
+    -- smoothing output
+    if data.last then
+        predicted = data.last:Lerp(predicted, data.confidence > 0.4 and 0.15 or 0.3)
+    end
+
+    data.last = predicted
+    return predicted
+end
+
+
 
 -- == ENHANCED SMART SILENT AIM SYSTEM ==
 local Remote
