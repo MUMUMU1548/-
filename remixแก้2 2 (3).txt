@@ -221,16 +221,10 @@ local CharModule = require(game.ReplicatedStorage.Modules.Core.Char)
 -- == Global Variables (Grouped by Feature) ==
 -- Silent Aim
 local SilentAimEnabled = false
-local SilentAimAttachEnabled = false
-local GoodGunEnabled = false
-local FOVRadius = 120
-local CurrentTarget = nil
-local SilentFOVCircle = nil
-local Tracer = Drawing.new("Line")
-Tracer.Thickness = 1
-Tracer.Color = Color3.fromRGB(255, 50, 50)
-Tracer.Transparency = 1
-Tracer.Visible = false
+local ShowFOV = true
+local FOV = 120
+local SilentFOVCircle
+local tracerLine, targetDot
 -- ESP
 local espPlayers = {}
 local boxESPEnabled = false
