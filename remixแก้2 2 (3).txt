@@ -1960,102 +1960,46 @@ task.spawn(
 loadESP()
 -- == UI Tabs ==
 local Tab = Window:Tab({Title = "COMBAT:", Icon = "crosshair"})
-Tab:Section({Title = "GUN:"})
-local SilentToggle =
-    Tab:Toggle(
-    {
-        Title = "Silent Aim",
-        Default = false,
-        Callback = function(state)
-            SilentAimEnabled = state
-            CurrentTarget = nil
-            if state then
-                SilentAimAttachEnabled = false
-                GoodGunEnabled = false
-                if AttachToggle then
-                    AttachToggle:Set(false)
-                end
-                if GoodGunToggle then
-                    GoodGunToggle:Set(false)
-                end
-            end
-        end
-    }
-)
+local SilentToggle = Tab:Toggle({
+    Title = "Silent Aim | wallbang ",
+    Desc = "ล็อคหัวกับยิงทะลุ",
+    Default = false,
+    Callback = function(state)
+        SilentAimEnabled = state
+    end
+})
 myConfig:Register("SilentAim", SilentToggle)
 
-local GoodGunToggle =
-    Tab:Toggle(
-    {
-        Title = "GoodGun (WallBang)",
-        Default = false,
-        Callback = function(state)
-            GoodGunEnabled = state
-            CurrentTarget = nil
-            if state then
-                SilentAimEnabled = false
-                SilentAimAttachEnabled = false
-                if SilentToggle then
-                    SilentToggle:Set(false)
-                end
-                if AttachToggle then
-                    AttachToggle:Set(false)
-                end
+local FOVSlider = Tab:Slider({
+    Title = "FOV: ",
+    Step = 1,
+    Value = {Min = 20, Max = 750, Default = FOV},
+    Callback = function(value)
+        FOV = tonumber(value) or 120
+        if SilentFOVCircle then
+            if isMobile then
+                SilentFOVCircle.Size = UDim2.fromOffset(FOV * 2, FOV * 2)
+            else
+                SilentFOVCircle.Radius = FOV
             end
         end
-    }
-)
-myConfig:Register("GoodGun", GoodGunToggle)
-
-local AttachToggle =
-    Tab:Toggle(
-    {
-        Title = "Silent Aim (Attach Anti Lock)",
-        Default = false,
-        Callback = function(state)
-            SilentAimAttachEnabled = state
-            CurrentTarget = nil
-            if state then
-                SilentAimEnabled = false
-                GoodGunEnabled = false
-                if SilentToggle then
-                    SilentToggle:Set(false)
-                end
-                if GoodGunToggle then
-                    GoodGunToggle:Set(false)
-                end
-            end
-        end
-    }
-)
-myConfig:Register("SilentAimAttach", AttachToggle)
-local FOVSlider =
-    Tab:Slider(
-    {
-        Title = "FOV: ",
-        Step = 1,
-        Value = {
-            Min = 20,
-            Max = 750,
-            Default = FOVRadius
-        },
-        Callback = function(value)
-            FOVRadius = tonumber(value) or 120
-            if SilentFOVCircle then
-                if isMobile then
-                    SilentFOVCircle.Size = UDim2.fromOffset(FOVRadius * 2, FOVRadius * 2)
-                else
-                    SilentFOVCircle.Radius = FOVRadius
-                end
-            end
-        end
-    }
-)
+    end
+})
 myConfig:Register("FOVRadius", FOVSlider)
-local FriendsInput =
-    Tab:Input(
-    {
-        Title = "Sefe Friend List",
+
+local ShowFOVToggle = Tab:Toggle({
+    Title = "Show FOV",
+    Desc = "แสดงวงFOV",
+    Default = ShowFOV,
+    Callback = function(state)
+        ShowFOV = state
+        if SilentFOVCircle then
+            SilentFOVCircle.Visible = state and SilentAimEnabled
+        end
+    end
+})
+myConfig:Register("ShowFOV", ShowFOVToggle)
+myConfig:Register("ShowFOV", ShowFOVToggle)        Title = "Sefe Friend List",
         Desc = "Enter Player Name",
         Value = "",
         InputIcon = "shield-check",
@@ -2068,6 +2012,7 @@ local FriendsInput =
             end
             for _, player in pairs(Players:GetPlayers()) do
                 if espPlayers[player] and espPlayers[player].drawings then
+ espPlayers[player].drawings then
                     local nameText = espPlayers[player].drawings[1]
                     nameText.Color =
                         isPlayerExcluded(player.Name) and Color3.fromRGB(0, 255, 0) or Color3.fromRGB(255, 255, 255)
@@ -2093,7 +2038,7 @@ local FistsToggle =
                 local backpack = LocalPlayer:WaitForChild("Backpack")
                 local character = LocalPlayer.Character or LocalPlayer.CharacterAdded:Wait()
                 local function fixAttributes(fists)
-                    if fists and fists:IsA("Tool") then
+                    ifif fists and fists:IsA("Tool") then
                         if fists:GetAttribute("Disabled") ~= nil then
                             fists:SetAttribute("Disabled", false)
                         end
@@ -2117,9 +2062,7 @@ local FistsToggle =
                         task.wait(1)
                         for _, v in ipairs(char:GetChildren()) do
                             if v.Name == "Fists" then
-                                fixAttributes(v)
-                            end
-                        end
+                                fixAttributes                        end
                     end
                 )
                 if WindUI then
