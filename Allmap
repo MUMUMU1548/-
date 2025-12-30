@@ -561,8 +561,6 @@ MainTab:Slider({
 
 local ESPTab = Window:Tab({Title = "ESP", Icon = "eye"})
 
-task.spawn(function()
-    task.wait(0.15) -- รอ UI สร้างให้เสร็จ
     ESPTab:Toggle({
         Title = "Health ESP",
         Desc = "มองเลือด",
