@@ -533,3 +533,35 @@ EspTab:Toggle({
         ESP_Highlight = v
     end
 })
+
+
+local PlayerTab = Window:Tab({Title = "Player", Icon = "user"})
+
+local Players = game:GetService("Players")
+local lp = Players.LocalPlayer
+
+PlayerTab:Button({
+    Title = "invisible",
+    Desc = "กดแล้วตัวเราจะตายหลังจากนั้นจะล่องหน",
+    Callback = function()
+        setfflag("NextGenReplicatorEnabledWrite4", "true")
+        task.wait(0.1)
+        setfflag("NextGenReplicatorEnabledWrite4", "true")
+
+        local function killAndNotify(char)
+            local hum = char:WaitForChild("Humanoid")
+            task.wait(0.1)
+            hum.Health = 0
+            lp.CharacterAdded:Wait()
+            WindUI:Notify({
+                Title = "invisible Enabled",
+                Content = "⚠️คำแนะนำอย่าอยู่กับที่นานเกินไปอิอิ",
+                Duration = 5
+            })
+        end
+
+        if lp.Character then
+            killAndNotify(lp.Character)
+        end
+    end
+})
