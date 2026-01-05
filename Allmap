@@ -541,6 +541,12 @@ local PlayerTab = Window:Tab({Title = "Player", Icon = "user"})
 
 
 
+-- Services
+local Players = game:GetService("Players")
+local RunService = game:GetService("RunService")
+local LocalPlayer = Players.LocalPlayer
+
+-- Settings
 local PullSettings = {
     Enabled = false,
     Targets = {},
@@ -549,6 +555,7 @@ local PullSettings = {
 
 local FIXED_DISTANCE = 6
 
+-- ดึงรายชื่อผู้เล่น
 local function GetPlayerNames()
     local t = {}
     for _, plr in pairs(Players:GetPlayers()) do
@@ -589,10 +596,9 @@ RunService.Heartbeat:Connect(function()
     end
 end)
 
-
 PlayerTab:Dropdown({
     Title = "Select Pull Targets",
-    Values = GetPlayerNames(),
+    Values = {},
     Multi = true,
     Default = {},
     Callback = function(selected)
@@ -600,11 +606,22 @@ PlayerTab:Dropdown({
     end
 })
 
+local function RefreshPullDropdown()
+    local names = GetPlayerNames()
+    if PullDropdown and PullDropdown.SetValues then
+        PullDropdown:SetValues(names)
+    end
+end
+
+RefreshPullDropdown()
+Players.PlayerAdded:Connect(RefreshPullDropdown)
+Players.PlayerRemoving:Connect(RefreshPullDropdown)
 
 
+-- Toggle เปิด–ปิด
 PlayerTab:Toggle({
-    Title = "PULL Players",
-    Desc = "ดึงเฉพาะคนที่เลือก",
+    Title = "PULL Players Target",
+    Desc = "",
     Default = false,
     Callback = function(state)
         PullSettings.Enabled = state
@@ -615,7 +632,7 @@ PlayerTab:Toggle({
     end
 })
 
-
+-- Toggle ดึง ALL
 PlayerTab:Toggle({
     Title = "PULL ALL",
     Desc = "ดึงทุกคน",
@@ -625,6 +642,7 @@ PlayerTab:Toggle({
     end
 })
 
+-- Dropdown (Live Update ไม่พัง)
 
 
 
