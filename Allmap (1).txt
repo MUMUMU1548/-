@@ -114,6 +114,15 @@ local ESP_Distance = false
 local ESP_Highlight = false
 
 local TEXT_SIZE = 12
+
+local PullSettings = {
+    PullSelect = false,
+    PullAll = false,
+    Targets = {}
+}
+local FIXED_DISTANCE = 6 
+
+
 -- ====
 -- ฟังชั่นต่างๆ
 -- ======
@@ -380,8 +389,72 @@ end
 Players.PlayerAdded:Connect(createESP)
 
 -- ====
--- เลือด
+-- เแท็ปเพลเยอร์
 -- ====
+-- Get Player Names
+local function GetPlayerNames()
+    local t = {}
+    for _, plr in pairs(Players:GetPlayers()) do
+        if plr ~= LocalPlayer then
+            table.insert(t, plr.Name)
+        end
+    end
+    return t
+end
+
+-- ทำให้พวกเอ๋อทะลุตัวเรา
+local function NoCollidePlayer(plr, state)
+    if not plr.Character then return end
+    for _,v in pairs(plr.Character:GetDescendants()) do
+        if v:IsA("BasePart") then
+            v.CanCollide = not state -- true = ทะลุเรา
+        end
+    end
+end
+
+-- MAIN LOOP
+RunService.Heartbeat:Connect(function()
+    if not LocalPlayer.Character or not LocalPlayer.Character:FindFirstChild("HumanoidRootPart") then return end
+
+    local myHRP = LocalPlayer.Character.HumanoidRootPart
+    local baseCF = myHRP.CFrame * CFrame.new(0, 0, -FIXED_DISTANCE)
+    local anyPull = PullSettings.PullAll or PullSettings.PullSelect
+
+    -- PULL ALL
+    if PullSettings.PullAll then
+        for _,plr in pairs(Players:GetPlayers()) do
+            if plr ~= LocalPlayer and plr.Character and plr.Character:FindFirstChild("HumanoidRootPart") then
+                pcall(function()
+                    NoCollidePlayer(plr, true)
+                    plr.Character.HumanoidRootPart.CFrame = baseCF
+                    plr.Character.HumanoidRootPart.Velocity = Vector3.zero
+                end)
+            end
+        end
+    end
+
+    -- PULL SELECT
+    if PullSettings.PullSelect then
+        for _,name in pairs(PullSettings.Targets) do
+            local plr = Players:FindFirstChild(name)
+            if plr and plr.Character and plr.Character:FindFirstChild("HumanoidRootPart") then
+                pcall(function()
+                    NoCollidePlayer(plr, true)
+                    plr.Character.HumanoidRootPart.CFrame = baseCF
+                    plr.Character.HumanoidRootPart.Velocity = Vector3.zero
+                end)
+            end
+        end
+    end
+    if not anyPull then
+        for _,plr in pairs(Players:GetPlayers()) do
+            if plr ~= LocalPlayer then
+                NoCollidePlayer(plr, false)
+            end
+        end
+    end
+end)
+
 
 
 
@@ -539,86 +612,34 @@ local PlayerTab = Window:Tab({Title = "Player", Icon = "user"})
 
 
 
-local PullSettings = {
-Enabled = false,
-Targets = {},
-PullAll = false
-}
-
-local FIXED_DISTANCE = 6
-
-local function GetPlayerNames()
-local t = {}
-for _, plr in pairs(Players:GetPlayers()) do
-if plr ~= LocalPlayer then
-table.insert(t, plr.Name)
-end
-end
-return t
-end
-
--- Loop ดูด
-RunService.Heartbeat:Connect(function()
-if not PullSettings.Enabled then return end
-if not LocalPlayer.Character or not LocalPlayer.Character:FindFirstChild("HumanoidRootPart") then return end
-
-local myHRP = LocalPlayer.Character.HumanoidRootPart  
-local cf = myHRP.CFrame * CFrame.new(0, 0, -FIXED_DISTANCE)  
-
-if PullSettings.PullAll then  
-    for _,plr in pairs(Players:GetPlayers()) do  
-        if plr ~= LocalPlayer and plr.Character and plr.Character:FindFirstChild("HumanoidRootPart") then  
-            pcall(function()  
-                plr.Character.HumanoidRootPart.CFrame = cf  
-                plr.Character.HumanoidRootPart.Velocity = Vector3.zero  
-            end)  
-        end  
-    end  
-else  
-    for _,name in pairs(PullSettings.Targets) do  
-        local plr = Players:FindFirstChild(name)  
-        if plr and plr.Character and plr.Character:FindFirstChild("HumanoidRootPart") then  
-            pcall(function()  
-                plr.Character.HumanoidRootPart.CFrame = cf  
-                plr.Character.HumanoidRootPart.Velocity = Vector3.zero  
-            end)  
-        end  
-    end  
-end
-
-end)
-
 PlayerTab:Dropdown({
-Title = "Select Pull Targets",
-Values = GetPlayerNames(),
-Multi = true,
-Default = {},
-Callback = function(selected)
-PullSettings.Targets = selected
-end
+    Title = "Select Pull Targets",
+    Values = GetPlayerNames(),
+    Multi = true,
+    Default = {},
+    Callback = function(selected)
+        PullSettings.Targets = selected
+    end
 })
 
 PlayerTab:Toggle({
-Title = "PULL Players",
-Desc = "ดึงเฉพาะคนที่เลือก",
-Default = false,
-Callback = function(state)
-PullSettings.Enabled = state
-if not state then
-PullSettings.PullAll = false
-PullSettings.Targets = {}
-end
-end
+    Title = "PULL Player Target",
+    Desc = "ดึงเฉพาะคนที่เลือก",
+    Default = false,
+    Callback = function(state)
+        PullSettings.PullSelect = state
+    end
 })
 
 PlayerTab:Toggle({
-Title = "PULL ALL",
-Desc = "ดึงทุกคน",
-Default = false,
-Callback = function(state)
-PullSettings.PullAll = state
-end
+    Title = "PULL ALL",
+    Desc = "ดึงทุกคน",
+    Default = false,
+    Callback = function(state)
+        PullSettings.PullAll = state
+    end
 })
+
 
 
 local Players = game:GetService("Players")
