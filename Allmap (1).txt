@@ -539,15 +539,19 @@ local PlayerTab = Window:Tab({Title = "Player", Icon = "user"})
 
 
 
--- Settings
+-- Services
+local Players = game:GetService("Players")
+local RunService = game:GetService("RunService")
+local LocalPlayer = Players.LocalPlayer
+
 local PullSettings = {
     Enabled = false,
-    Distance = tonumber(6),
     Targets = {},
     PullAll = false
 }
 
--- ฟังก์ชันดึงรายชื่อผู้เล่น
+local FIXED_DISTANCE = 6
+
 local function GetPlayerNames()
     local t = {}
     for _, plr in pairs(Players:GetPlayers()) do
@@ -564,10 +568,9 @@ RunService.Heartbeat:Connect(function()
     if not LocalPlayer.Character or not LocalPlayer.Character:FindFirstChild("HumanoidRootPart") then return end
 
     local myHRP = LocalPlayer.Character.HumanoidRootPart
-    local cf = myHRP.CFrame * CFrame.new(0, 0, -tonumber(PullSettings.Distance))
+    local cf = myHRP.CFrame * CFrame.new(0, 0, -FIXED_DISTANCE)
 
     if PullSettings.PullAll then
-        -- ดึงทุกคน
         for _,plr in pairs(Players:GetPlayers()) do
             if plr ~= LocalPlayer and plr.Character and plr.Character:FindFirstChild("HumanoidRootPart") then
                 pcall(function()
@@ -577,7 +580,6 @@ RunService.Heartbeat:Connect(function()
             end
         end
     else
-        -- ดึงเฉพาะที่เลือก
         for _,name in pairs(PullSettings.Targets) do
             local plr = Players:FindFirstChild(name)
             if plr and plr.Character and plr.Character:FindFirstChild("HumanoidRootPart") then
@@ -590,9 +592,11 @@ RunService.Heartbeat:Connect(function()
     end
 end)
 
+
 -- Dropdown เลือกหลายคน
 PlayerTab:Dropdown({
     Title = "Select Pull Targets",
+    Desc = "เลือกคนที่จะดึง",
     Values = GetPlayerNames(),
     Multi = true,
     Default = {},
@@ -601,17 +605,21 @@ PlayerTab:Dropdown({
     end
 })
 
--- Toggle เปิด–ปิด PULL
+-- Toggle เปิด–ปิด
 PlayerTab:Toggle({
-    Title = "PULL Players Target",
-    Desc = "ดึงเฉพาะคนที่เลือก",
+    Title = "PULL Players",
+    Desc = "ดึงคนที่เลือก",
     Default = false,
     Callback = function(state)
         PullSettings.Enabled = state
+        if not state then
+            PullSettings.PullAll = false
+            PullSettings.Targets = {}
+        end
     end
 })
 
--- Toggle โหมดดึง ALL
+-- Toggle ดึง ALL
 PlayerTab:Toggle({
     Title = "PULL ALL",
     Desc = "ดึงทุกคน",
@@ -621,18 +629,6 @@ PlayerTab:Toggle({
     end
 })
 
-
-
--- Slider ปรับระยะ
-PlayerTab:Slider({
-    Title = "Pull Distance",
-    Min = 3,
-    Max = 15,
-    Default = 6,
-    Callback = function(val)
-        PullSettings.Distance = tonumber(val)
-    end
-})
 
 
 local Players = game:GetService("Players")
@@ -658,8 +654,7 @@ PlayerTab:Button({
             })
         end
 
-        if lp.Character then
-            killAndNotify(lp.Character)
+              killAndNotify(lp.Character)
         end
     end
 })
