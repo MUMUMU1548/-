@@ -539,8 +539,6 @@ EspTab:Toggle({
 
 local PlayerTab = Window:Tab({Title = "Player", Icon = "user"})
 
-
-
 -- Services
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
@@ -553,9 +551,10 @@ local PullSettings = {
     PullAll = false
 }
 
+-- ระยะคงที่ (หน้าเรา)
 local FIXED_DISTANCE = 6
 
--- ดึงรายชื่อผู้เล่น
+-- ฟังก์ชันดึงรายชื่อผู้เล่น
 local function GetPlayerNames()
     local t = {}
     for _, plr in pairs(Players:GetPlayers()) do
@@ -575,6 +574,7 @@ RunService.Heartbeat:Connect(function()
     local cf = myHRP.CFrame * CFrame.new(0, 0, -FIXED_DISTANCE)
 
     if PullSettings.PullAll then
+        -- ดึงทุกคน
         for _,plr in pairs(Players:GetPlayers()) do
             if plr ~= LocalPlayer and plr.Character and plr.Character:FindFirstChild("HumanoidRootPart") then
                 pcall(function()
@@ -584,6 +584,7 @@ RunService.Heartbeat:Connect(function()
             end
         end
     else
+        -- ดึงเฉพาะที่เลือก
         for _,name in pairs(PullSettings.Targets) do
             local plr = Players:FindFirstChild(name)
             if plr and plr.Character and plr.Character:FindFirstChild("HumanoidRootPart") then
@@ -596,39 +597,13 @@ RunService.Heartbeat:Connect(function()
     end
 end)
 
-PlayerTab:Dropdown({
-    Title = "Select Pull Targets",
-    Values = {},
-    Multi = true,
-    Default = {},
-    Callback = function(selected)
-        PullSettings.Targets = selected
-    end
-})
-
-local function RefreshPullDropdown()
-    local names = GetPlayerNames()
-    if PullDropdown and PullDropdown.SetValues then
-        PullDropdown:SetValues(names)
-    end
-end
-
-RefreshPullDropdown()
-Players.PlayerAdded:Connect(RefreshPullDropdown)
-Players.PlayerRemoving:Connect(RefreshPullDropdown)
-
-
 -- Toggle เปิด–ปิด
 PlayerTab:Toggle({
     Title = "PULL Players Target",
-    Desc = "",
+    Desc = "ดึงเฉพาะคนที่เลือก",
     Default = false,
     Callback = function(state)
         PullSettings.Enabled = state
-        if not state then
-            PullSettings.PullAll = false
-            PullSettings.Targets = {}
-        end
     end
 })
 
@@ -642,9 +617,16 @@ PlayerTab:Toggle({
     end
 })
 
--- Dropdown (Live Update ไม่พัง)
-
-
+-- Dropdown เลือกหลายคน
+PlayerTab:Dropdown({
+    Title = "Select Pull Targets",
+    Values = GetPlayerNames(),
+    Multi = true,
+    Default = {},
+    Callback = function(selected)
+        PullSettings.Targets = selected
+    end
+})
 
 
 local Players = game:GetService("Players")
