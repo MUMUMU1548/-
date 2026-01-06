@@ -484,129 +484,93 @@ MainTab:Slider({
 
 local ESPTab = Window:Tab({Title = "ESP", Icon = "eye"})
 
-ESPTab:Toggle({
-    Title = "ESP Name",
-    Desc = "มองชื่อ",
-    Default = false,
-    Callback = function(state)
-        ESPEnabled = state
-        updateAllESPVisibility()
-    end
-})
 
-
-ESPTab:Toggle({
-    Title = "ESP Health",
-    Desc = "มองเลือด",
-    Default = false,
-    Callback = function(state)
-        ESPHealthEnabled = state
-        for _, player in pairs(Players:GetPlayers()) do
-            if ESPHealthEnabled then
-                createHealthBar(player)
-            else
-                if player.Character and player.Character:FindFirstChild("Head") then
-                    local hb = player.Character.Head:FindFirstChild("HealthBar")
-                    if hb then
-                        hb:Destroy()
-                    end
-                end
-            end
-        end
-    end
-})
-
+--// SERVICES
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
-local lp = Players.LocalPlayer
-local cam = workspace.CurrentCamera
+local LocalPlayer = Players.LocalPlayer
 
-local ESP = {}
-local HEIGHT = 3.6
-local BASE_WIDTH = 64
-local BASE_HEIGHT = 10
-local DIST_SCALE = 0.05
-local ESP_ENABLED = false
+--// SETTINGS
+local Hitbox = {
+    Enabled = false,
+    Visible = true,
+    Size = 20,
+    Color = Color3.fromRGB(170,170,170),
+    Transparency = 0.6
+}
 
-local function createESP(plr)
-    if plr == lp then return end
-    if ESP[plr] then return end
+--// FUNCTIONS
+local function Apply(plr)
+    if plr ~= LocalPlayer then
+        local char = plr.Character
+        if char and char:FindFirstChild("HumanoidRootPart") then
+            local hrp = char.HumanoidRootPart
 
-    local gui = Instance.new("BillboardGui")
-    gui.Name = "OvalHealth"
-    gui.Size = UDim2.fromOffset(BASE_WIDTH, BASE_HEIGHT)
-    gui.StudsOffset = Vector3.new(0,HEIGHT,0)
-    gui.AlwaysOnTop = true
-    gui.LightInfluence = 0
-    gui.MaxDistance = 1e9
+            hrp.Size = Vector3.new(Hitbox.Size, Hitbox.Size, Hitbox.Size)
+            hrp.Color = Hitbox.Color
+            hrp.CanCollide = false
+            hrp.Material = Enum.Material.Glass
 
-    local border = Instance.new("Frame", gui)
-    border.Size = UDim2.fromScale(1,1)
-    border.BackgroundColor3 = Color3.fromRGB(0,0,0)
-    border.BorderSizePixel = 0
-    Instance.new("UICorner", border).CornerRadius = UDim.new(1,0)
-
-    local bg = Instance.new("Frame", border)
-    bg.Position = UDim2.fromScale(0.01,0.12)
-    bg.Size = UDim2.fromScale(0.98,0.76)
-    bg.BackgroundColor3 = Color3.fromRGB(35,35,35)
-    bg.BackgroundTransparency = 0.1
-    bg.BorderSizePixel = 0
-    Instance.new("UICorner", bg).CornerRadius = UDim.new(1,0)
-
-    local bar = Instance.new("Frame", bg)
-    bar.BorderSizePixel = 0
-    bar.Size = UDim2.fromScale(1,1)
-    Instance.new("UICorner", bar).CornerRadius = UDim.new(1,0)
-
-    ESP[plr] = {gui=gui, bar=bar}
-end
-
-local function removeESP(plr)
-    if ESP[plr] then
-        ESP[plr].gui:Destroy()
-        ESP[plr] = nil
+            if Hitbox.Visible then
+                hrp.Transparency = Hitbox.Transparency
+            else
+                hrp.Transparency = 1
+            end
+        end
     end
 end
 
-RunService.RenderStepped:Connect(function()
-    if not ESP_ENABLED then return end
-    for plr,data in pairs(ESP) do
+local function Reset(plr)
+    if plr ~= LocalPlayer then
         local char = plr.Character
-        local hum = char and char:FindFirstChildOfClass("Humanoid")
-        local head = char and char:FindFirstChild("Head")
-        if hum and head then
-            data.gui.Parent = head
-            local hp = math.clamp(hum.Health / hum.MaxHealth,0,1)
-            data.bar.Size = UDim2.fromScale(hp,1)
-            data.bar.BackgroundColor3 = Color3.fromHSV(hp*0.33,1,1)
-            local dist = (cam.CFrame.Position - head.Position).Magnitude
-            local w = BASE_WIDTH + (dist * DIST_SCALE)
-            data.gui.Size = UDim2.fromOffset(w, BASE_HEIGHT)
+        if char and char:FindFirstChild("HumanoidRootPart") then
+            local hrp = char.HumanoidRootPart
+            hrp.Size = Vector3.new(2,2,1)
+            hrp.Transparency = 1
+            hrp.Material = Enum.Material.Plastic
+        end
+    end
+end
+
+--// LOOP
+RunService.Heartbeat:Connect(function()
+    if Hitbox.Enabled then
+        for _,plr in pairs(Players:GetPlayers()) do
+            Apply(plr)
         end
     end
 end)
 
-Players.PlayerAdded:Connect(function(p)
-    if ESP_ENABLED then createESP(p) end
-end)
-Players.PlayerRemoving:Connect(removeESP)
+
 
 ESPTab:Toggle({
-    Title = "Health ESP",
-    Desc = "Oval HP Bar",
-    Value = false,
+    Title = "Expand Hitbox",
+    Default = false,
     Callback = function(state)
-        ESP_ENABLED = state
+        Hitbox.Enabled = state
         if not state then
-            for _,v in pairs(ESP) do
-                if v.gui then v.gui:Destroy() end
-            end
-            table.clear(ESP)
-        else
-            for _,p in ipairs(Players:GetPlayers()) do
-                if p ~= lp then createESP(p) end
+            for _,plr in pairs(Players:GetPlayers()) do
+                Reset(plr)
             end
         end
+    end
+})
+
+ESPTab:Toggle({
+    Title = "Show Hitbox",
+    Default = false,
+    Callback = function(state)
+        Hitbox.Visible = state
+    end
+})
+
+ESPTab:Slider({
+    Title = "Hitbox Size",
+    Desc = "ปรับขนาดฮิตบล็อก",
+    Min = 5,
+    Max = 60,
+    Default = 20,
+    Callback = function(val)
+        Hitbox.Size = val
     end
 })
